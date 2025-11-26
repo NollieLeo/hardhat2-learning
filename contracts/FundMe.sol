@@ -24,7 +24,7 @@ contract FundMe {
 
     address erc20;
 
-    AggregatorV3Interface internal dataFeed;
+    AggregatorV3Interface public dataFeed;
 
     uint256 deployTimestamp;
     uint256 lockTimestamp;
@@ -32,8 +32,8 @@ contract FundMe {
     // flag 是否被提取了
     bool public getFundSuccess;
 
-    constructor(uint256 _lockTimestamp) {
-        dataFeed = AggregatorV3Interface(SEPOLIA_ETH_TO_USD_TEST_NET);
+    constructor(uint256 _lockTimestamp, address _dataFeedAddr) {
+        dataFeed = AggregatorV3Interface(_dataFeedAddr);
         owner = msg.sender;
 
         // block: 内置区块实例, 从中获取此合约部署到区块的时间

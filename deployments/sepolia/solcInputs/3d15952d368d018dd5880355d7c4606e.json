@@ -1,0 +1,39 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\n// solhint-disable-next-line interface-starts-with-i\ninterface AggregatorV3Interface {\n  function decimals() external view returns (uint8);\n\n  function description() external view returns (string memory);\n\n  function version() external view returns (uint256);\n\n  function getRoundData(\n    uint80 _roundId\n  ) external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\n\n  function latestRoundData()\n    external\n    view\n    returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\n}\n"
+    },
+    "contracts/FundMe.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\n\n// chainlink aggregator\nimport {AggregatorV3Interface} from \"@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol\";\n\n// 1. 创建一个收款函数\n// 2. 记录投资人并且能查看\n// 3. 限制付款最小ETH值（改为最小USD需要从DON获取dataFeed --- chainlink）\n// 4. 在锁定期内，达到目标值，生产商可以提款\ncontract FundMe {\n    mapping(address => uint256) public fundersToAmount;\n\n    uint256 MIN_ETH_VALUE = 1 * 10 ** 18; // 单位wei\n    uint256 MIN_USD_VALUE = 1 * 10 ** 18; // USD\n\n    // constant设置常量\n    uint256 constant TARGET_USD = 1 * 10 ** 18;\n\n    address internal SEPOLIA_ETH_TO_USD_TEST_NET =\n        0x694AA1769357215DE4FAC081bf1f309aDC325306;\n\n    address public owner;\n\n    address erc20;\n\n    AggregatorV3Interface public dataFeed;\n\n    uint256 deployTimestamp;\n    uint256 lockTimestamp;\n\n    // flag 是否被提取了\n    bool public getFundSuccess;\n\n    constructor(uint256 _lockTimestamp, address _dataFeedAddr) {\n        dataFeed = AggregatorV3Interface(_dataFeedAddr);\n        owner = msg.sender;\n\n        // block: 内置区块实例, 从中获取此合约部署到区块的时间\n        deployTimestamp = block.timestamp;\n        lockTimestamp = _lockTimestamp;\n    }\n\n    // payable 标记为收款函数\n    function fund() external payable {\n        require(\n            block.timestamp < deployTimestamp + lockTimestamp,\n            \"window is closed\"\n        );\n        uint256 usdValue = convertEthToUsd(msg.value);\n        // require(condition, revert message)\n        require(usdValue >= MIN_USD_VALUE, \"You need to spend more ETH!\");\n        fundersToAmount[msg.sender] = msg.value;\n    }\n\n    /**\n     * Returns the latest answer.\n     * 这里根据dataField获取 1eth 对应的USD 价格\n     * ETH / USD percision 10 ** 8\n     * X / ETH 10 ** 18\n     */\n    function getChainlinkDataFeedLatestAnswer() public view returns (int256) {\n        // prettier-ignore\n        (\n      /* uint80 roundId */\n      ,\n      int256 answer,\n      /*uint256 startedAt*/\n      ,\n      /*uint256 updatedAt*/\n      ,\n      /*uint80 answeredInRound*/\n    ) = dataFeed.latestRoundData();\n        return answer;\n    }\n\n    function convertEthToUsd(\n        uint256 ethAmount\n    ) internal view returns (uint256) {\n        uint256 ethPrice = uint256(getChainlinkDataFeedLatestAnswer());\n        // 处以 10 ** 8 是为了将最终的输出位数转为18位\n        return (ethAmount * ethPrice) / (10 ** 8);\n    }\n\n    // 转移owner 同理，只允许被owner调用\n    function transferOwner(address newOwner) public OnlyOwner {\n        owner = newOwner;\n    }\n\n    // getFund 只允许被owner调用\n    function getFund() external WindowClosedRequired OnlyOwner {\n        // address(this) -- this指当前合约，address this 表达当前合约在链上地址， balance表示当前地址持有的以太币数量（wei）\n        uint256 allBalance = address(this).balance /* wei */;\n        uint256 currentUSD = convertEthToUsd(allBalance);\n        require(currentUSD >= TARGET_USD, \"Target is not reached\");\n        // 🌟transfer: transfer ETH and revert if tx failed\n        payable(owner).transfer(allBalance);\n\n        getFundSuccess = true;\n        fundersToAmount[msg.sender] = 0;\n\n        // 🌟send: transfer ETH and return false if tx failed\n        // bool success = payable(owner).send(allBalance)\n\n        // 🌟call: transfer ETH with data return value of function and bool\n        // (bool success, ) = payable(owner).call{value: allBalance}(\"\");\n    }\n\n    function refund() external WindowClosedRequired {\n        uint256 funderAmount = fundersToAmount[msg.sender];\n        require(funderAmount > 0, \"You are not funder\");\n        uint256 currentUSD = convertEthToUsd(address(this).balance);\n        require(currentUSD < TARGET_USD, \"Target is reached\");\n        (bool success, ) = payable(msg.sender).call{value: funderAmount}(\"\");\n        require(success, \"failed to transfer\");\n        fundersToAmount[msg.sender] = 0;\n    }\n\n    function setFunderToAmount(address funder, uint256 amount) external {\n        require(msg.sender == erc20, \"You have no permission\");\n        fundersToAmount[funder] = amount;\n    }\n\n    function setERC20Address(address erc20Addr) public OnlyOwner {\n        erc20 = erc20Addr;\n    }\n\n    modifier WindowClosedRequired() {\n        require(\n            block.timestamp >= deployTimestamp + lockTimestamp,\n            \"window is not closed\"\n        );\n        _;\n    }\n\n    modifier OnlyOwner() {\n        require(msg.sender == owner, \"You are not the owner\");\n        _;\n    }\n}\n"
+    }
+  },
+  "settings": {
+    "evmVersion": "paris",
+    "optimizer": {
+      "enabled": false,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}

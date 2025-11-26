@@ -2,11 +2,12 @@ require("@nomicfoundation/hardhat-toolbox");
 require("@chainlink/env-enc").config();
 
 require("./tasks");
+require("hardhat-deploy");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: "0.8.28",
-  defaultNetwork: "hardhat",
+  defaultNetwork: "hardhat", // 本地环境
   networks: {
     sepolia: {
       // https://dashboard.alchemy.com/apps/0sgi3lgcebssjhbb/setup
@@ -17,6 +18,14 @@ module.exports = {
         process.env.PRIVATE_KEY_2,
       ],
       chainId: 11155111,
+    },
+  },
+  namedAccounts: {
+    firstAccount: {
+      default: 0,
+    },
+    secondAccount: {
+      default: 1,
     },
   },
   etherscan: {

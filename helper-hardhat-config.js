@@ -1,0 +1,23 @@
+const DECIMAL = 8;
+const INIT_ANSWER = 300000000000;
+
+const DEVELOPMENT_CHAINS = ["hardhat", "local"];
+
+const LOCK_TIME = 180;
+
+const NETWORK_CONFIG = {
+  11155111: {
+    ethToUSDDataFeed: "0x694AA1769357215DE4FAC081bf1f309aDC325306",
+  },
+};
+
+const CONFIRMATIONS = 5;
+
+module.exports = {
+  DECIMAL,
+  INIT_ANSWER,
+  DEVELOPMENT_CHAINS,
+  NETWORK_CONFIG,
+  CONFIRMATIONS,
+  LOCK_TIME,
+};
