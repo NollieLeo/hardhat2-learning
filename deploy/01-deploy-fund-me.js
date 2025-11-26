@@ -15,11 +15,14 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
 
   let dataFeedAddr;
 
+  let confirmations = 0;
+
   if (DEVELOPMENT_CHAINS.includes(network.name)) {
     const mockV3Aggregator = await deployments.get("MockV3Aggregator");
     dataFeedAddr = mockV3Aggregator.address;
   } else {
     dataFeedAddr = NETWORK_CONFIG[network.config.chainId].ethToUSDDataFeed;
+    confirmations = CONFIRMATIONS;
   }
 
   console.log(blue(`dataFeed:`), green(dataFeedAddr));
@@ -30,7 +33,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     from: firstAccount,
     args: fundMeArg,
     log: true,
-    waitConfirmations: CONFIRMATIONS, // Waiting for 5 confirmations and continue to verify
+    waitConfirmations: confirmations, //  Waiting for 5 confirmations and continue to verify 非本地网络情况下启用
   });
 
   // verify

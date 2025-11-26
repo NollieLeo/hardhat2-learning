@@ -15,7 +15,7 @@ contract FundMe {
     uint256 MIN_USD_VALUE = 1 * 10 ** 18; // USD
 
     // constant设置常量
-    uint256 constant TARGET_USD = 1 * 10 ** 18;
+    uint256 constant TARGET_USD = 500 * 10 ** 18;
 
     address internal SEPOLIA_ETH_TO_USD_TEST_NET =
         0x694AA1769357215DE4FAC081bf1f309aDC325306;
@@ -104,7 +104,13 @@ contract FundMe {
 
         // 🌟call: transfer ETH with data return value of function and bool
         // (bool success, ) = payable(owner).call{value: allBalance}("");
+
+        // emit success event
+        emit FundWithdrawByOwner(allBalance);
     }
+
+    event FundWithdrawByOwner(uint256 amount);
+    event RefundByFunder(address addr, uint256 amount);
 
     function refund() external WindowClosedRequired {
         uint256 funderAmount = fundersToAmount[msg.sender];
@@ -114,6 +120,7 @@ contract FundMe {
         (bool success, ) = payable(msg.sender).call{value: funderAmount}("");
         require(success, "failed to transfer");
         fundersToAmount[msg.sender] = 0;
+        emit RefundByFunder(msg.sender, funderAmount);
     }
 
     function setFunderToAmount(address funder, uint256 amount) external {

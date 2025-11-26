@@ -3,6 +3,8 @@ require("@chainlink/env-enc").config();
 
 require("./tasks");
 require("hardhat-deploy");
+require("hardhat-deploy-ethers");
+require("@nomicfoundation/hardhat-ethers");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
