@@ -10,6 +10,9 @@ require("@nomicfoundation/hardhat-ethers");
 module.exports = {
   solidity: "0.8.28",
   defaultNetwork: "hardhat", // 本地环境
+  mocha: {
+    timeout: 300000,
+  },
   networks: {
     sepolia: {
       // https://dashboard.alchemy.com/apps/0sgi3lgcebssjhbb/setup
